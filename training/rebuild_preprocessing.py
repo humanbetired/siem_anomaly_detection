@@ -26,6 +26,21 @@ df['pkt_len_ratio'] = df['Bwd Packet Length Mean'] / \
                       (df['Fwd Packet Length Mean'] + 1)
 df['bwd_fwd_ratio'] = df['Bwd Packets/s'] / (df['Flow Packets/s'] + 1)
 
+# Hitung korelasi ulang
+df['label_encoded'] = (df['Label'] == 'DDoS').astype(int)
+numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+numeric_cols.remove('label_encoded')
+
+correlations = df[numeric_cols].corrwith(df['label_encoded']).abs().sort_values(ascending=False)
+top20 = correlations.head(20).index.tolist()
+
+# Final features: top20 + 3 engineered = 23
+engineered = ['pkt_len_ratio', 'bwd_fwd_ratio', 'Bwd Packets/s']
+features = top20 + engineered
+
+print(f"Total features: {len(features)}")
+print(features)
+
 # Load feature list dari milestone 1
 features = joblib.load(os.path.join(data_dir, "features.pkl"))
 
