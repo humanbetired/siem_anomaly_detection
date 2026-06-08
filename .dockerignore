@@ -1,0 +1,9 @@
+venv/
+__pycache__/
+*.pyc
+.git/
+notebooks/
+data/Friday-WorkingHours-Afternoon-DDos.pcap_ISCX.csv
+mlruns/
+mlflow.db
+.ipynb_checkpoints/

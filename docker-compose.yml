@@ -1,0 +1,40 @@
+services:
+
+  fastapi:
+    build:
+      context: .
+      dockerfile: Dockerfile.fastapi
+    container_name: siem-fastapi
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONUNBUFFERED=1
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - siem-network
+
+  django:
+    build:
+      context: .
+      dockerfile: Dockerfile.django
+    container_name: siem-django
+    ports:
+      - "8080:8080"
+    environment:
+      - FASTAPI_URL=http://fastapi:8000
+      - DJANGO_SECRET_KEY=local-dev-secret-key-change-in-production
+      - DEBUG=True
+    depends_on:
+      fastapi:
+        condition: service_healthy
+    networks:
+      - siem-network
+
+networks:
+  siem-network:
+    driver: bridge
