@@ -1,597 +1,610 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SIEM — Anomaly Detection</title>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
-        rel="stylesheet">
+    <title>SIMALY</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
-        *,
-        *::before,
-        *::after {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
         :root {
-            --bg: #060a12;
-            --bg-2: #0a1020;
-            --bg-3: #0f1829;
-            --border: #1a2540;
-            --border-2: #243050;
-            --accent: #3b82f6;
-            --accent-dim: #1d4ed8;
-            --green: #10b981;
-            --yellow: #f59e0b;
-            --orange: #f97316;
-            --red: #ef4444;
-            --text: #e2e8f0;
-            --text-2: #94a3b8;
-            --text-3: #475569;
+            --bg-grad: linear-gradient(135deg, #eef2fb 0%, #f3eefb 45%, #eef6fb 100%);
+            --surface:   #ffffff;
+            --surface-2: #f7f8fc;
+            --border:    #e7eaf2;
+            --border-2:  #d8dde8;
+            --text:      #161b29;
+            --text-2:    #6b7488;
+            --text-3:    #9aa3b8;
+            --accent:    #2563eb;
+            --accent-dim:#1d4ed8;
+            --dark-pill: #14181f;
+            --green:  #059669;
+            --yellow: #d97706;
+            --orange: #ea580c;
+            --red:    #dc2626;
             --mono: 'JetBrains Mono', monospace;
+            --sans: 'Inter', sans-serif;
+            --radius:    16px;
+            --radius-sm: 10px;
+            --shadow: 0 1px 2px rgba(20,24,40,0.04), 0 8px 24px rgba(20,24,40,0.04);
+            --ease: cubic-bezier(0.16, 1, 0.3, 1);
         }
 
         body {
-            font-family: 'Inter', sans-serif;
-            background: var(--bg);
+            font-family: var(--sans);
+            background: var(--bg-grad);
             color: var(--text);
             min-height: 100vh;
             display: flex;
             flex-direction: column;
+            -webkit-font-smoothing: antialiased;
         }
 
-        /* NAV */
+        /* ============ NAV ============ */
         nav {
-            background: var(--bg-2);
-            border-bottom: 1px solid var(--border);
-            padding: 0 1.5rem;
-            height: 56px;
+            padding: 1.5rem 2rem 0;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            position: sticky;
-            top: 0;
-            z-index: 100;
+            max-width: 1280px;
+            margin: 0 auto;
+            width: 100%;
         }
 
-        .nav-left {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
+        .nav-left { display: flex; align-items: center; gap: 0.75rem; }
 
         .nav-logo {
-            width: 28px;
-            height: 28px;
-            background: var(--accent);
-            border-radius: 6px;
+            width: 32px;
+            height: 32px;
+            background: var(--dark-pill);
+            border-radius: 9px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 0.75rem;
-            font-weight: 700;
-            color: white;
         }
+        .nav-logo svg { width: 16px; height: 16px; }
 
         .nav-title {
-            font-size: 0.9375rem;
-            font-weight: 600;
-            letter-spacing: -0.01em;
+            font-size: 0.875rem;
+            font-weight: 700;
+            color: var(--text);
         }
-
-        .nav-subtitle {
+        .nav-version {
             font-size: 0.75rem;
             color: var(--text-3);
-            margin-left: 0.5rem;
+            font-weight: 500;
         }
 
-        .status-dot {
+        .status-pill {
             display: flex;
             align-items: center;
             gap: 0.5rem;
-            font-size: 0.75rem;
-            color: var(--text-2);
+            font-size: 0.8125rem;
+            font-weight: 600;
+            color: #fff;
+            padding: 0.5rem 1rem;
+            border-radius: 100px;
+            background: var(--dark-pill);
         }
 
         .dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: var(--text-3);
+            width: 7px; height: 7px; border-radius: 50%;
+            background: #6b7488; flex-shrink: 0;
         }
-
         .dot.connected {
-            background: var(--green);
-            box-shadow: 0 0 6px var(--green);
+            background: #34d399;
+            animation: pulse 2s var(--ease) infinite;
+        }
+        .dot.disconnected { background: #f87171; }
+
+        @keyframes pulse {
+            0%   { box-shadow: 0 0 0 0 rgba(52,211,153,0.5); }
+            70%  { box-shadow: 0 0 0 6px rgba(52,211,153,0); }
+            100% { box-shadow: 0 0 0 0 rgba(52,211,153,0); }
         }
 
-        .dot.disconnected {
-            background: var(--red);
-        }
-
-        /* LAYOUT */
-        .container {
+        /* ============ MAIN ============ */
+        main {
             flex: 1;
-            padding: 1.5rem;
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            grid-template-rows: auto auto 1fr;
-            gap: 1rem;
+            max-width: 1280px;
+            margin: 0 auto;
+            width: 100%;
+            padding: 2.5rem 2rem 8rem;
         }
 
-        /* STAT CARDS */
-        .stat-card {
-            background: var(--bg-2);
+        /* ============ HERO ============ */
+        .hero {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .hero h1 {
+            font-size: 2rem;
+            font-weight: 600;
+            color: var(--text-2);
+            letter-spacing: -0.01em;
+            line-height: 1.3;
+        }
+        .hero h1 b { color: var(--text); font-weight: 800; }
+
+        .hero-bubble-wrap {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex-shrink: 0;
+        }
+
+        .hero-bubble {
+            background: var(--surface);
             border: 1px solid var(--border);
-            border-radius: 10px;
-            padding: 1.25rem;
+            border-radius: var(--radius-sm);
+            padding: 0.625rem 0.875rem;
+            font-size: 0.8125rem;
+            font-weight: 600;
+            color: var(--text);
+            box-shadow: var(--shadow);
+            white-space: nowrap;
+        }
+        .hero-bubble span { color: var(--text-3); font-weight: 500; display: block; font-size: 0.7rem; margin-top: 0.15rem; }
+
+        .hero-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 18px;
+            background: linear-gradient(160deg, #1f2433, #0c0f17);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            box-shadow: 0 10px 24px rgba(20,24,40,0.18);
+        }
+        .hero-icon svg { width: 28px; height: 28px; color: #34d399; }
+
+        /* ============ STAT CARDS ============ */
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
         }
 
-        .stat-label {
-            font-size: 0.6875rem;
-            font-weight: 500;
-            text-transform: uppercase;
-            letter-spacing: 0.06em;
-            color: var(--text-3);
+        .stat-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+            transition: transform 0.2s var(--ease), box-shadow 0.2s var(--ease);
+        }
+        .stat-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 8px rgba(20,24,40,0.05), 0 16px 32px rgba(20,24,40,0.07);
+        }
+
+        .stat-icon {
+            width: 38px; height: 38px;
+            border-radius: 11px;
+            display: flex; align-items: center; justify-content: center;
+            margin-bottom: 1.25rem;
+        }
+        .stat-icon svg { width: 18px; height: 18px; }
+        .stat-icon.blue   { background: #e8efff; color: var(--accent); }
+        .stat-icon.red    { background: #fde8e8; color: var(--red); }
+        .stat-icon.yellow { background: #fef3e2; color: var(--yellow); }
+
+        .stat-value {
+            font-size: 1.875rem;
+            font-weight: 800;
+            font-family: var(--mono);
+            letter-spacing: -0.02em;
+            line-height: 1;
             margin-bottom: 0.5rem;
         }
 
-        .stat-value {
-            font-size: 2rem;
-            font-weight: 700;
-            letter-spacing: -0.03em;
-            font-family: var(--mono);
-        }
-
-        .stat-value.green {
-            color: var(--green);
-        }
-
-        .stat-value.red {
-            color: var(--red);
-        }
-
-        .stat-value.yellow {
-            color: var(--yellow);
+        .stat-label {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 0.25rem;
         }
 
         .stat-sub {
-            font-size: 0.75rem;
+            font-size: 0.8rem;
             color: var(--text-3);
-            margin-top: 0.375rem;
+            font-weight: 500;
         }
 
-        /* SIMULATE SECTION */
-        .simulate-section {
-            grid-column: 1 / -1;
-            background: var(--bg-2);
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            padding: 1.25rem;
-        }
-
-        .section-title {
-            font-size: 0.8125rem;
-            font-weight: 600;
-            color: var(--text-2);
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin-bottom: 1rem;
-        }
-
-        .sim-buttons {
-            display: flex;
-            gap: 0.75rem;
-            flex-wrap: wrap;
-        }
-
-        .btn {
-            padding: 0.5rem 1rem;
-            border-radius: 6px;
-            font-size: 0.8125rem;
-            font-weight: 600;
-            font-family: 'Inter', sans-serif;
-            cursor: pointer;
-            border: none;
-            transition: all 0.15s;
-            display: flex;
-            align-items: center;
-            gap: 0.375rem;
-        }
-
-        .btn-normal {
-            background: rgba(16, 185, 129, 0.15);
-            color: var(--green);
-            border: 1px solid rgba(16, 185, 129, 0.3);
-        }
-
-        .btn-normal:hover {
-            background: rgba(16, 185, 129, 0.25);
-        }
-
-        .btn-ddos {
-            background: rgba(239, 68, 68, 0.15);
-            color: var(--red);
-            border: 1px solid rgba(239, 68, 68, 0.3);
-        }
-
-        .btn-ddos:hover {
-            background: rgba(239, 68, 68, 0.25);
-        }
-
-        .btn-burst {
-            background: rgba(249, 115, 22, 0.15);
-            color: var(--orange);
-            border: 1px solid rgba(249, 115, 22, 0.3);
-        }
-
-        .btn-burst:hover {
-            background: rgba(249, 115, 22, 0.25);
-        }
-
-        .btn-primary {
-            background: var(--accent);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: var(--accent-dim);
-        }
-
-        /* ALERTS TABLE */
+        /* ============ ALERTS TABLE ============ */
         .alerts-section {
-            grid-column: 1 / -1;
-            background: var(--bg-2);
+            background: var(--surface);
             border: 1px solid var(--border);
-            border-radius: 10px;
+            border-radius: var(--radius);
             overflow: hidden;
-            display: flex;
-            flex-direction: column;
+            box-shadow: var(--shadow);
         }
 
         .alerts-header {
-            padding: 1rem 1.25rem;
+            padding: 1.25rem 1.5rem;
             border-bottom: 1px solid var(--border);
             display: flex;
             align-items: center;
             justify-content: space-between;
         }
 
-        .alert-count {
-            background: var(--red);
-            color: white;
-            font-size: 0.6875rem;
+        .section-title {
+            font-size: 0.95rem;
             font-weight: 700;
-            padding: 0.125rem 0.5rem;
-            border-radius: 10px;
+            color: var(--text);
+        }
+
+        .alert-count {
+            background: #fde8e8;
+            color: var(--red);
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 0.2rem 0.6rem;
+            border-radius: 100px;
             font-family: var(--mono);
         }
 
-        .alerts-table {
-            overflow-y: auto;
-            max-height: 380px;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.8125rem;
-        }
+        .alerts-table { overflow-y: auto; max-height: 420px; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.8125rem; }
 
         thead th {
-            padding: 0.625rem 1.25rem;
+            padding: 0.75rem 1.5rem;
             text-align: left;
             font-size: 0.6875rem;
-            font-weight: 500;
+            font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 0.05em;
+            letter-spacing: 0.06em;
             color: var(--text-3);
-            background: var(--bg-3);
+            background: var(--surface-2);
             border-bottom: 1px solid var(--border);
             position: sticky;
             top: 0;
         }
 
-        tbody tr {
-            border-bottom: 1px solid var(--border);
-            transition: background 0.1s;
-        }
-
-        tbody tr:hover {
-            background: var(--bg-3);
-        }
-
-        tbody tr.new-alert {
-            animation: flashRow 1s ease-out;
-        }
+        tbody tr { border-bottom: 1px solid var(--border); transition: background 0.12s var(--ease); }
+        tbody tr:hover { background: var(--surface-2); }
+        tbody tr.new-alert { animation: flashRow 1.2s ease-out; }
 
         @keyframes flashRow {
-            0% {
-                background: rgba(239, 68, 68, 0.2);
-            }
-
-            100% {
-                background: transparent;
-            }
+            0%   { background: #fde8e8; }
+            100% { background: transparent; }
         }
 
         td {
-            padding: 0.75rem 1.25rem;
+            padding: 0.85rem 1.5rem;
             color: var(--text-2);
             font-family: var(--mono);
             font-size: 0.75rem;
+            white-space: nowrap;
         }
-
-        td.timestamp {
-            color: var(--text-3);
-        }
+        td.timestamp { color: var(--text-3); }
 
         .severity-badge {
-            display: inline-block;
-            padding: 0.2rem 0.5rem;
-            border-radius: 4px;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.25rem 0.625rem;
+            border-radius: 100px;
             font-size: 0.6875rem;
             font-weight: 700;
             letter-spacing: 0.04em;
         }
+        .severity-badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
 
-        .severity-LOW {
-            background: rgba(16, 185, 129, 0.15);
-            color: var(--green);
+        .severity-LOW      { background: #ecfdf5; color: var(--green); }
+        .severity-LOW::before { background: var(--green); }
+        .severity-MEDIUM   { background: #fffbeb; color: var(--yellow); }
+        .severity-MEDIUM::before { background: var(--yellow); }
+        .severity-HIGH     { background: #fff7ed; color: var(--orange); }
+        .severity-HIGH::before { background: var(--orange); }
+        .severity-CRITICAL { background: #fef2f2; color: var(--red); }
+        .severity-CRITICAL::before {
+            background: var(--red);
+            animation: pulse-red 1.6s var(--ease) infinite;
+        }
+        @keyframes pulse-red {
+            0%   { box-shadow: 0 0 0 0 rgba(220,38,38,0.45); }
+            70%  { box-shadow: 0 0 0 6px rgba(220,38,38,0); }
+            100% { box-shadow: 0 0 0 0 rgba(220,38,38,0); }
         }
 
-        .severity-MEDIUM {
-            background: rgba(245, 158, 11, 0.15);
-            color: var(--yellow);
-        }
-
-        .severity-HIGH {
-            background: rgba(249, 115, 22, 0.15);
-            color: var(--orange);
-        }
-
-        .severity-CRITICAL {
-            background: rgba(239, 68, 68, 0.15);
-            color: var(--red);
-        }
-
-        .result-normal {
-            color: var(--green);
-        }
-
-        .result-anomaly {
-            color: var(--red);
-        }
+        .result-normal  { color: var(--green); }
+        .result-anomaly { color: var(--red); font-weight: 600; }
 
         .empty-state {
             text-align: center;
-            padding: 3rem;
+            padding: 3.5rem 2rem;
             color: var(--text-3);
-            font-size: 0.8125rem;
-            font-family: 'Inter', sans-serif;
+            font-size: 0.85rem;
+            font-family: var(--sans);
         }
+        .empty-state svg { width: 32px; height: 32px; margin: 0 auto 0.75rem; display: block; color: var(--border-2); }
 
-        /* TOAST */
-        .toast-container {
+        /* ============ BOTTOM BAR ============ */
+        .bottom-bar-wrap {
             position: fixed;
             bottom: 1.5rem;
+            left: 0; right: 0;
+            display: flex;
+            justify-content: center;
+            padding: 0 1.5rem;
+            z-index: 50;
+        }
+
+        .bottom-bar {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            box-shadow: 0 12px 32px rgba(20,24,40,0.12);
+            padding: 0.875rem 1.25rem;
+            width: 100%;
+            max-width: 760px;
+        }
+
+        .bottom-bar-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            color: var(--text-3);
+            font-weight: 500;
+            margin-bottom: 0.75rem;
+            padding: 0 0.25rem;
+        }
+        .bottom-bar-top span { display: flex; align-items: center; gap: 0.4rem; }
+        .bottom-bar-top svg { width: 13px; height: 13px; }
+
+        .sim-buttons { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+
+        .btn {
+            padding: 0.5rem 0.9rem;
+            border-radius: 5px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            font-family: var(--sans);
+            cursor: pointer;
+            border: 1px solid transparent;
+            transition: transform 0.12s var(--ease), background 0.15s var(--ease), opacity 0.15s var(--ease);
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            background: var(--border);
+            color: #212020;
+        }
+        .btn svg { width: 13px; height: 13px; }
+        .btn:active { transform: scale(0.97); }
+        .btn:hover { opacity: 0.85; }
+
+        .btn-icon-dot {
+            width: 6px; height: 6px; border-radius: 20%; flex-shrink: 0;
+        }
+        .btn-normal .btn-icon-dot { background: #34d399; }
+        .btn-ddos .btn-icon-dot   { background: #f87171; }
+        .btn-burst .btn-icon-dot  { background: #fb923c; }
+
+        .btn-refresh {
+            margin-left: auto;
+            background: var(--surface-2);
+            color: var(--text);
+            border-color: var(--border);
+        }
+
+        /* ============ TOAST ============ */
+        .toast-container {
+            position: fixed;
+            top: 1.5rem;
             right: 1.5rem;
             display: flex;
             flex-direction: column;
-            gap: 0.5rem;
+            gap: 0.6rem;
             z-index: 999;
         }
 
         .toast {
-            background: var(--bg-3);
-            border: 1px solid var(--border-2);
-            border-radius: 8px;
-            padding: 0.75rem 1rem;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 0.875rem 1.1rem;
             font-size: 0.8125rem;
-            min-width: 280px;
-            animation: slideIn 0.3s ease;
+            min-width: 300px;
+            box-shadow: var(--shadow);
+            animation: slideIn 0.25s var(--ease);
             display: flex;
             align-items: center;
-            gap: 0.625rem;
-        }
-
-        .toast.critical {
+            gap: 0.7rem;
             border-left: 3px solid var(--red);
         }
-
-        .toast.high {
-            border-left: 3px solid var(--orange);
-        }
-
-        .toast.medium {
-            border-left: 3px solid var(--yellow);
-        }
+        .toast.high   { border-left-color: var(--orange); }
+        .toast.medium { border-left-color: var(--yellow); }
 
         @keyframes slideIn {
-            from {
-                transform: translateX(100%);
-                opacity: 0;
-            }
-
-            to {
-                transform: translateX(0);
-                opacity: 1;
-            }
+            from { transform: translateX(110%); opacity: 0; }
+            to   { transform: translateX(0);    opacity: 1; }
         }
 
-        footer {
-            padding: 1rem 1.5rem;
-            border-top: 1px solid var(--border);
-            display: flex;
-            justify-content: space-between;
-            font-size: 0.75rem;
-            color: var(--text-3);
-        }
-
-        .pills {
-            display: flex;
-            gap: 0.5rem;
-        }
-
-        .pill {
-            padding: 0.2rem 0.5rem;
-            border: 1px solid var(--border);
-            border-radius: 4px;
-            font-size: 0.6875rem;
+        /* ============ RESPONSIVE ============ */
+        @media (max-width: 860px) {
+            .cards-grid { grid-template-columns: 1fr; }
+            .hero { flex-direction: column; align-items: stretch; }
+            .hero-bubble-wrap { align-self: flex-start; }
+            .bottom-bar-top { display: none; }
+            main { padding-bottom: 9rem; }
         }
     </style>
 </head>
-
 <body>
 
-    <nav>
-        <div class="nav-left">
-            <div class="nav-logo">SI</div>
-            <span class="nav-title">SIEM Dashboard</span>
-            <span class="nav-subtitle">Anomaly Detection System</span>
-        </div>
-        <div class="status-dot">
-            <div class="dot" id="ws-dot"></div>
-            <span id="ws-status">Connecting...</span>
-        </div>
-    </nav>
+<nav>
+    <div class="nav-left">
+        <span class="nav-title">SIMALY</span>
+        <span class="nav-version">· Anomaly Detection</span>
+    </div>
+</nav>
 
-    <div class="container">
-
-        <!-- Stat cards -->
-        <div class="stat-card">
-            <div class="stat-label">Total Requests</div>
-            <div class="stat-value" id="total-requests">0</div>
-            <div class="stat-sub">flows analyzed</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-label">Anomalies Detected</div>
-            <div class="stat-value red" id="total-anomalies">0</div>
-            <div class="stat-sub">threats flagged</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-label">Anomaly Rate</div>
-            <div class="stat-value yellow" id="anomaly-rate">0.00%</div>
-            <div class="stat-sub">of total traffic</div>
-        </div>
-
-        <!-- Simulate -->
-        <div class="simulate-section">
-            <div class="section-title">Traffic Simulator</div>
-            <div class="sim-buttons">
-                <button class="btn btn-normal" onclick="sendFlow('benign')">
-                    Send Normal Traffic
-                </button>
-                <button class="btn btn-ddos" onclick="sendFlow('ddos')">
-                    Send DDoS Traffic
-                </button>
-                <button class="btn btn-burst" onclick="sendBurst()">
-                    DDoS Burst (10x)
-                </button>
-                <button class="btn btn-primary" onclick="refreshStats()">
-                    Refresh Stats
-                </button>
+<main>
+    <div class="hero">
+        <h1>Hi Analyst, <b>all network traffic is being monitored</b></h1>
+        <div class="hero-bubble-wrap">
+            <div class="hero-bubble">
+                <span id="hero-status-label">Monitoring active</span>
+                <span id="hero-anomaly-text">0 anomalies so far</span>
+            </div>
             </div>
         </div>
-
-        <!-- Alerts table -->
-        <div class="alerts-section">
-            <div class="alerts-header">
-                <span class="section-title" style="margin:0">Live Alert Feed</span>
-                <span class="alert-count" id="alert-count">0</span>
-            </div>
-            <div class="alerts-table">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Time</th>
-                            <th>Severity</th>
-                            <th>Score</th>
-                            <th>Isolation Forest</th>
-                            <th>Autoencoder</th>
-                            <th>Recon Error</th>
-                            <th>Message</th>
-                        </tr>
-                    </thead>
-                    <tbody id="alerts-tbody">
-                        <tr>
-                            <td colspan="7" class="empty-state">
-                                No alerts yet. Send traffic to begin monitoring.
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
     </div>
 
-    <div class="toast-container" id="toast-container"></div>
-
-    <footer>
-        <span>Isolation Forest + Dense Autoencoder · CICIDS 2017</span>
-        <div class="pills">
-            <span class="pill">FastAPI</span>
-            <span class="pill">Django Channels</span>
-            <span class="pill">WebSocket</span>
-            <span class="pill">PyTorch</span>
+    <div class="cards-grid">
+        <div class="stat-card">
+            <div class="stat-icon blue">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+                </svg>
+            </div>
+            <div class="stat-value" id="total-requests">0</div>
+            <div class="stat-label">Total Requests</div>
+            <div class="stat-sub">flows analyzed</div>
         </div>
-    </footer>
 
-    <script>
-        // ── WebSocket ──────────────────────────────────────
-        let ws;
-        let alertCount = 0;
+        <div class="stat-card">
+            <div class="stat-icon red">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/>
+                    <path d="M12 9v4"/><path d="M12 17h.01"/>
+                </svg>
+            </div>
+            <div class="stat-value" id="total-anomalies" style="color: var(--red)">0</div>
+            <div class="stat-label">Anomalies Detected</div>
+            <div class="stat-sub">threats flagged</div>
+        </div>
 
-        function connectWS() {
-            ws = new WebSocket('ws://' + window.location.host + '/ws/alerts/');
+        <div class="stat-card">
+            <div class="stat-icon yellow">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/>
+                </svg>
+            </div>
+            <div class="stat-value" id="anomaly-rate" style="color: var(--yellow)">0.00%</div>
+            <div class="stat-label">Anomaly Rate</div>
+            <div class="stat-sub">of total traffic</div>
+        </div>
+    </div>
 
-            ws.onopen = () => {
-                document.getElementById('ws-dot').className = 'dot connected';
-                document.getElementById('ws-status').textContent = 'Live';
-            };
+    <div class="alerts-section">
+        <div class="alerts-header">
+            <span class="section-title">Live Alert Feed</span>
+            <span class="alert-count" id="alert-count">0</span>
+        </div>
+        <div class="alerts-table">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Time</th>
+                        <th>Severity</th>
+                        <th>Score</th>
+                        <th>Isolation Forest</th>
+                        <th>Autoencoder</th>
+                        <th>Recon Error</th>
+                        <th>Message</th>
+                    </tr>
+                </thead>
+                <tbody id="alerts-tbody">
+                    <tr>
+                        <td colspan="7" class="empty-state">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 3 7v6c0 5 4 8 9 9 5-1 9-4 9-9V7l-9-5Z"/></svg>
+                            No alerts yet. Send traffic to begin monitoring.
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</main>
 
-            ws.onclose = () => {
-                document.getElementById('ws-dot').className = 'dot disconnected';
-                document.getElementById('ws-status').textContent = 'Disconnected';
-                setTimeout(connectWS, 3000);
-            };
+<div class="toast-container" id="toast-container"></div>
 
-            ws.onmessage = (e) => {
-                const data = JSON.parse(e.data);
-                if (data.type === 'alert') {
-                    addAlertRow(data);
-                    showToast(data);
-                    alertCount++;
-                    document.getElementById('alert-count').textContent = alertCount;
-                }
-            };
+<div class="bottom-bar-wrap">
+    <div class="bottom-bar">
+        <div class="bottom-bar-top">
+            <span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20v-6M6 20V10M18 20V4"/></svg>
+                Traffic Simulator
+            </span>
+            <span>Isolation Forest + Dense Autoencoder · CICIDS 2017</span>
+        </div>
+        <div class="sim-buttons">
+            <button class="btn btn-normal" onclick="sendFlow('benign')">
+                <span class="btn-icon-dot"></span> Send Normal Traffic
+            </button>
+            <button class="btn btn-ddos" onclick="sendFlow('ddos')">
+                <span class="btn-icon-dot"></span> Send DDoS Traffic
+            </button>
+            <button class="btn btn-burst" onclick="sendBurst()">
+                <span class="btn-icon-dot"></span> DDoS Burst (10x)
+            </button>
+            <button class="btn btn-refresh" onclick="refreshStats()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+                Refresh
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ── WebSocket ──────────────────────────────────────
+    let ws;
+    let alertCount = 0;
+
+    function connectWS() {
+        ws = new WebSocket('ws://' + window.location.host + '/ws/alerts/');
+
+        ws.onopen = () => {
+            document.getElementById('ws-dot').className = 'dot connected';
+            document.getElementById('ws-status').textContent = 'Live';
+        };
+
+        ws.onclose = () => {
+            document.getElementById('ws-dot').className = 'dot disconnected';
+            document.getElementById('ws-status').textContent = 'Disconnected';
+            setTimeout(connectWS, 3000);
+        };
+
+        ws.onmessage = (e) => {
+            const data = JSON.parse(e.data);
+            if (data.type === 'alert') {
+                addAlertRow(data);
+                showToast(data);
+                alertCount++;
+                document.getElementById('alert-count').textContent = alertCount;
+                document.getElementById('hero-anomaly-text').textContent = alertCount + ' anomalies so far';
+            }
+        };
+    }
+
+    connectWS();
+
+    // ── Alert row ──────────────────────────────────────
+    function addAlertRow(data) {
+        const tbody = document.getElementById('alerts-tbody');
+
+        if (tbody.querySelector('.empty-state')) {
+            tbody.innerHTML = '';
         }
 
-        connectWS();
+        const severityClass = 'severity-' + data.severity;
+        const ifClass = data.isolation_forest === 'ANOMALY' ? 'result-anomaly' : 'result-normal';
+        const aeClass = data.autoencoder === 'ANOMALY' ? 'result-anomaly' : 'result-normal';
 
-        // ── Alert row ──────────────────────────────────────
-        function addAlertRow(data) {
-            const tbody = document.getElementById('alerts-tbody');
-
-            // Remove empty state
-            if (tbody.querySelector('.empty-state')) {
-                tbody.innerHTML = '';
-            }
-
-            const severityClass = 'severity-' + data.severity;
-            const ifClass = data.isolation_forest === 'ANOMALY'
-                ? 'result-anomaly' : 'result-normal';
-            const aeClass = data.autoencoder === 'ANOMALY'
-                ? 'result-anomaly' : 'result-normal';
-
-            const row = document.createElement('tr');
-            row.className = 'new-alert';
-            row.innerHTML = `
+        const row = document.createElement('tr');
+        row.className = 'new-alert';
+        row.innerHTML = `
             <td class="timestamp">${data.timestamp}</td>
             <td><span class="severity-badge ${severityClass}">${data.severity}</span></td>
             <td>${data.anomaly_score.toFixed(4)}</td>
@@ -601,126 +614,96 @@
             <td>${data.message}</td>
         `;
 
-            tbody.insertBefore(row, tbody.firstChild);
+        tbody.insertBefore(row, tbody.firstChild);
 
-            // Max 100 rows
-            while (tbody.rows.length > 100) {
-                tbody.deleteRow(tbody.rows.length - 1);
-            }
+        while (tbody.rows.length > 100) {
+            tbody.deleteRow(tbody.rows.length - 1);
         }
+    }
 
-        // ── Toast notification ─────────────────────────────
-        function showToast(data) {
-            if (data.severity === 'LOW') return;
+    // ── Toast notification ─────────────────────────────
+    function showToast(data) {
+        if (data.severity === 'LOW') return;
 
-            const container = document.getElementById('toast-container');
-            const toast = document.createElement('div');
-            toast.className = 'toast ' + data.severity.toLowerCase();
-            toast.innerHTML = `
-            <span style="font-weight:600;color:var(--red)">${data.severity}</span>
+        const container = document.getElementById('toast-container');
+        const toast = document.createElement('div');
+        toast.className = 'toast ' + data.severity.toLowerCase();
+        toast.innerHTML = `
+            <span style="font-weight:700;color:var(--red)">${data.severity}</span>
             <span style="color:var(--text-2)">${data.message} · score ${data.anomaly_score.toFixed(3)}</span>
         `;
-            container.appendChild(toast);
-            setTimeout(() => toast.remove(), 4000);
+        container.appendChild(toast);
+        setTimeout(() => toast.remove(), 4000);
+    }
+
+    // ── Traffic payloads ───────────────────────────────
+    const BENIGN_PAYLOAD = {
+        "Bwd Packet Length Mean": 117.0, "Avg Bwd Segment Size": 117.0,
+        "Bwd Packet Length Max": 350.0, "Bwd Packet Length Std": 89.0,
+        "Destination Port": 20000.0, "URG Flag Count": 0.0,
+        "Packet Length Mean": 200.0, "Average Packet Size": 200.0,
+        "Packet Length Std": 150.0, "Min Packet Length": 20.0,
+        "Max Packet Length": 500.0, "Packet Length Variance": 1000.0,
+        "min_seg_size_forward": 20.0, "Bwd Packet Length Min": 20.0,
+        "Avg Fwd Segment Size": 150.0, "Fwd Packet Length Mean": 150.0,
+        "Fwd Packet Length Max": 400.0, "Subflow Fwd Bytes": 5000.0,
+        "Total Length of Fwd Packets": 5000.0, "Bwd IAT Total": 500000.0,
+        "Bwd Packets/s": 3700.0, "Flow Packets/s": 5000.0,
+        "Flow IAT Std": 100.0, "Fwd IAT Total": 200000.0
+    };
+
+    const DDOS_PAYLOAD = {
+        "Bwd Packet Length Mean": 1481.0, "Avg Bwd Segment Size": 1481.0,
+        "Bwd Packet Length Max": 1500.0, "Bwd Packet Length Std": 200.0,
+        "Destination Port": 81.0, "URG Flag Count": 1.0,
+        "Packet Length Mean": 1200.0, "Average Packet Size": 1200.0,
+        "Packet Length Std": 300.0, "Min Packet Length": 800.0,
+        "Max Packet Length": 1500.0, "Packet Length Variance": 90000.0,
+        "min_seg_size_forward": 800.0, "Bwd Packet Length Min": 800.0,
+        "Avg Fwd Segment Size": 900.0, "Fwd Packet Length Mean": 900.0,
+        "Fwd Packet Length Max": 1500.0, "Subflow Fwd Bytes": 50000.0,
+        "Total Length of Fwd Packets": 50000.0, "Bwd IAT Total": 1000.0,
+        "Bwd Packets/s": 70.0, "Flow Packets/s": 100.0,
+        "Flow IAT Std": 5000.0, "Fwd IAT Total": 500.0
+    };
+
+    // ── Send flow ──────────────────────────────────────
+    async function sendFlow(type) {
+        const payload = type === 'benign' ? BENIGN_PAYLOAD : DDOS_PAYLOAD;
+        try {
+            await fetch('/api/ingest/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            await refreshStats();
+        } catch (e) {
+            console.error(e);
         }
+    }
 
-        // ── Traffic payloads ───────────────────────────────
-        const BENIGN_PAYLOAD = {
-            "Bwd Packet Length Mean": 117.0,
-            "Avg Bwd Segment Size": 117.0,
-            "Bwd Packet Length Max": 350.0,
-            "Bwd Packet Length Std": 89.0,
-            "Destination Port": 20000.0,
-            "URG Flag Count": 0.0,
-            "Packet Length Mean": 200.0,
-            "Average Packet Size": 200.0,
-            "Packet Length Std": 150.0,
-            "Min Packet Length": 20.0,
-            "Max Packet Length": 500.0,
-            "Packet Length Variance": 1000.0,
-            "min_seg_size_forward": 20.0,
-            "Bwd Packet Length Min": 20.0,
-            "Avg Fwd Segment Size": 150.0,
-            "Fwd Packet Length Mean": 150.0,
-            "Fwd Packet Length Max": 400.0,
-            "Subflow Fwd Bytes": 5000.0,
-            "Total Length of Fwd Packets": 5000.0,
-            "Bwd IAT Total": 500000.0,
-            "Bwd Packets/s": 3700.0,
-            "Flow Packets/s": 5000.0,
-            "Flow IAT Std": 100.0,
-            "Fwd IAT Total": 200000.0
-        };
-
-        const DDOS_PAYLOAD = {
-            "Bwd Packet Length Mean": 1481.0,
-            "Avg Bwd Segment Size": 1481.0,
-            "Bwd Packet Length Max": 1500.0,
-            "Bwd Packet Length Std": 200.0,
-            "Destination Port": 81.0,
-            "URG Flag Count": 1.0,
-            "Packet Length Mean": 1200.0,
-            "Average Packet Size": 1200.0,
-            "Packet Length Std": 300.0,
-            "Min Packet Length": 800.0,
-            "Max Packet Length": 1500.0,
-            "Packet Length Variance": 90000.0,
-            "min_seg_size_forward": 800.0,
-            "Bwd Packet Length Min": 800.0,
-            "Avg Fwd Segment Size": 900.0,
-            "Fwd Packet Length Mean": 900.0,
-            "Fwd Packet Length Max": 1500.0,
-            "Subflow Fwd Bytes": 50000.0,
-            "Total Length of Fwd Packets": 50000.0,
-            "Bwd IAT Total": 1000.0,
-            "Bwd Packets/s": 70.0,
-            "Flow Packets/s": 100.0,
-            "Flow IAT Std": 5000.0,
-            "Fwd IAT Total": 500.0
-        };
-
-        // ── Send flow ──────────────────────────────────────
-        async function sendFlow(type) {
-            const payload = type === 'benign' ? BENIGN_PAYLOAD : DDOS_PAYLOAD;
-            try {
-                const res = await fetch('/api/ingest/', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                await refreshStats();
-            } catch (e) {
-                console.error(e);
-            }
+    async function sendBurst() {
+        for (let i = 0; i < 10; i++) {
+            await sendFlow('ddos');
+            await new Promise(r => setTimeout(r, 300));
         }
+    }
 
-        async function sendBurst() {
-            for (let i = 0; i < 10; i++) {
-                await sendFlow('ddos');
-                await new Promise(r => setTimeout(r, 300));
-            }
+    // ── Stats ──────────────────────────────────────────
+    async function refreshStats() {
+        try {
+            const res = await fetch('/api/stats/');
+            const data = await res.json();
+            document.getElementById('total-requests').textContent = data.total_requests.toLocaleString();
+            document.getElementById('total-anomalies').textContent = data.total_anomalies.toLocaleString();
+            document.getElementById('anomaly-rate').textContent = (data.anomaly_rate * 100).toFixed(2) + '%';
+        } catch (e) {
+            console.error(e);
         }
+    }
 
-        // ── Stats ──────────────────────────────────────────
-        async function refreshStats() {
-            try {
-                const res = await fetch('/api/stats/');
-                const data = await res.json();
-                document.getElementById('total-requests').textContent =
-                    data.total_requests.toLocaleString();
-                document.getElementById('total-anomalies').textContent =
-                    data.total_anomalies.toLocaleString();
-                document.getElementById('anomaly-rate').textContent =
-                    (data.anomaly_rate * 100).toFixed(2) + '%';
-            } catch (e) {
-                console.error(e);
-            }
-        }
-
-        // Refresh stats setiap 5 detik
-        setInterval(refreshStats, 5000);
-        refreshStats();
-    </script>
+    setInterval(refreshStats, 5000);
+    refreshStats();
+</script>
 </body>
-
 </html>

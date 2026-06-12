@@ -16,6 +16,7 @@ The system consists of two services orchestrated with Docker Compose:
 - **Django service** — serves a real-time dashboard and pushes alerts over WebSocket
 
 ![Architecture Diagram](Archi/Archi.png)
+![Look like](Archi/look.png)
 
 ## Models
 
